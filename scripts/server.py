@@ -154,9 +154,9 @@ def call_respond():
     ai_reply  = gpt_reply(call_sid, user_said)
     audio_url = tts(ai_reply)
 
+    # End only on explicit sign-off phrases to avoid premature hangups
     ending = any(p in ai_reply.lower() for p in
-                 ["thank you", "goodbye", "bye", "see you", "take care",
-                  "look forward", "all set", "confirmed", "have a great"])
+                 ["goodbye", "bye", "see you"])
 
     resp = VoiceResponse()
     if ending:
