@@ -19,6 +19,7 @@ OPENAI_API_KEY     = os.environ.get("OPENAI_API_KEY", "")
 PUBLIC_URL         = os.environ.get("CALLER_PUBLIC_URL", "")
 MASTER_PHONE       = os.environ.get("MASTER_PHONE", "")
 DEFAULT_VOICE      = os.environ.get("CALLER_VOICE_ID", "tyepWYJJwJM9TTFIg5U7")
+CONVERSATION_MODEL = os.environ.get("CALLER_MODEL", "gpt-4o-mini")
 
 # In-memory state per call SID
 conversations = {}   # call_sid → [{role, content}]
@@ -56,7 +57,7 @@ def gpt_reply(call_sid: str, user_said: str) -> str:
     conversations[call_sid].append({"role": "user", "content": user_said})
     client = OpenAI(api_key=OPENAI_API_KEY)
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=CONVERSATION_MODEL,
         max_tokens=120,
         messages=[{"role": "system", "content": personas.get(call_sid, "")}] + conversations[call_sid]
     )
@@ -76,7 +77,7 @@ def send_summary(call_sid: str):
     )
     client = OpenAI(api_key=OPENAI_API_KEY)
     summary = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=CONVERSATION_MODEL,
         max_tokens=120,
         messages=[
             {"role": "system", "content": "Summarize this phone call in 2-3 sentences. Was the goal achieved? Any key details (time, name, outcome)?"},
