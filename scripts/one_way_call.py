@@ -5,6 +5,7 @@ Usage: python3 one_way_call.py --to "+13105551234" --text "Hello!" [--voice VOIC
 """
 import os, argparse, requests, tempfile
 from twilio.rest import Client
+from twilio.twiml.voice_response import VoiceResponse
 
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
@@ -38,12 +39,19 @@ def upload_audio(audio_bytes: bytes) -> str:
     return url
 
 
-def make_call(to: str, audio_url: str) -> str:
+def build_twiml(text: str) -> str:
+    """Build self-contained call instructions so playback cannot depend on a file host."""
+    response = VoiceResponse()
+    response.say(text, voice="Polly.Joanna")
+    return str(response)
+
+
+def make_call(to: str, twiml: str) -> str:
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     call = client.calls.create(
         from_=TWILIO_FROM,
         to=to,
-        twiml=f"<Response><Play>{audio_url}</Play></Response>"
+        twiml=twiml,
     )
     return call.sid
 
@@ -59,16 +67,15 @@ def main():
     if args.file:
         with open(args.file, "rb") as f:
             audio_bytes = f.read()
+        print(f"📤  Uploading audio...")
+        url = upload_audio(audio_bytes)
+        twiml = f"<Response><Play>{url}</Play></Response>"
     else:
-        print(f"🎙️  Generating audio...")
-        audio_bytes = generate_audio(args.text, args.voice)
-
-    print(f"📤  Uploading audio...")
-    url = upload_audio(audio_bytes)
-    print(f"📡  Audio URL: {url}")
+        print("🎙️  Building inline speech...")
+        twiml = build_twiml(args.text)
 
     print(f"📞  Calling {args.to}...")
-    sid = make_call(args.to, url)
+    sid = make_call(args.to, twiml)
     print(f"✅  Call initiated: {sid}")
 
 
